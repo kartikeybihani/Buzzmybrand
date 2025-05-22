@@ -56,53 +56,72 @@ export function VideosModal({ influencer, onClose }: Props) {
           </button>
         </div>
         <div className="p-4 sm:p-6 overflow-y-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-4">
             {influencer.videos.map((video, idx) => (
               <div
                 key={idx}
-                className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+                className="bg-white p-4 rounded-lg border space-y-3"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900">
-                    Video #{idx + 1}
-                  </span>
-                  <span
-                    className={`px-2 py-1 rounded-full text-sm ${getStatusColor(
-                      video.status
-                    )}`}
-                  >
-                    {video.status}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {video.link && (
-                    <a
-                      href={video.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${getStatusColor(
+                        video.status,
+                        influencer.paid
+                      )}`}
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                      View Post
-                    </a>
-                  )}
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Posted: {video.postedOn || "—"}</span>
-                    <span>{video.views?.toLocaleString() || 0} views</span>
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        Video #{idx + 1}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {video.postedOn
+                          ? new Date(video.postedOn).toLocaleDateString()
+                          : "Not posted"}
+                        {video.views &&
+                          ` • ${video.views.toLocaleString()} views`}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        video.status === "posted"
+                          ? "bg-green-100 text-green-800"
+                          : video.status === "approve"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {video.status}
+                    </span>
                   </div>
                 </div>
+                {video.link && (
+                  <a
+                    href={video.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:text-blue-800 break-all flex items-center gap-1"
+                  >
+                    {video.link}
+                    <svg
+                      className="w-4 h-4 inline-block"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                  </a>
+                )}
               </div>
             ))}
           </div>

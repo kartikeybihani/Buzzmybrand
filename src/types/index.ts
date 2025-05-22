@@ -28,6 +28,7 @@ export interface FormState {
   videos: {
     link: string;
     postedOn: string;
+    views?: string;
     status: "script" | "approve" | "posted";
   }[];
 }

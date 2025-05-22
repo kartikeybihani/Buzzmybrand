@@ -47,14 +47,26 @@ export default function InfluencerTracker() {
       try {
         setIsLoading(true);
         const savedInfluencers = loadInfluencers();
-        setInfluencers(savedInfluencers);
+        // Update viewsNow based on video views
+        const updatedInfluencers = savedInfluencers.map((inf) => ({
+          ...inf,
+          viewsNow: inf.videos.reduce(
+            (total, video) => total + (video.views || 0),
+            0
+          ),
+        }));
+        setInfluencers(updatedInfluencers);
       } catch (error) {
         console.error("Error loading influencers:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    loadData();
+
+    // Only run on client side
+    if (typeof window !== "undefined") {
+      loadData();
+    }
   }, []);
 
   // Derived stats
@@ -93,6 +105,7 @@ export default function InfluencerTracker() {
       videos: influencer.videos.map((v) => ({
         link: v.link,
         postedOn: v.postedOn,
+        views: v.views?.toString() || "",
         status: v.status,
       })),
     });
@@ -108,7 +121,19 @@ export default function InfluencerTracker() {
     }
 
     const viewsMedianNum = Number(formState.viewsMedian);
-    const viewsNowNum = Number(formState.viewsNow || 0);
+    const videos = formState.videos.map((v, idx) => ({
+      id: (idx + 1) as 1 | 2 | 3 | 4,
+      link: v.link.trim(),
+      postedOn: v.postedOn,
+      views: v.views ? Number(v.views) : 0,
+      status: v.status,
+    }));
+
+    // Calculate viewsNow as sum of video views
+    const viewsNowNum = videos.reduce(
+      (total, video) => total + (video.views || 0),
+      0
+    );
 
     const newInf: Influencer = {
       id: editingInfluencer || uuid(),
@@ -120,12 +145,7 @@ export default function InfluencerTracker() {
       viewsMedian: viewsMedianNum,
       viewsTotal: viewsMedianNum * 5,
       viewsNow: viewsNowNum,
-      videos: formState.videos.map((v, idx) => ({
-        id: (idx + 1) as 1 | 2 | 3 | 4,
-        link: v.link.trim(),
-        postedOn: v.postedOn,
-        status: v.status,
-      })),
+      videos,
       paid: false,
     };
 

@@ -239,30 +239,45 @@ export function InfluencerForm({
                         <option value="posted">Posted</option>
                       </select>
                     </div>
-                    <input
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Video Link"
-                      value={video.link}
-                      onChange={(e) => {
-                        const videos = [...formState.videos];
-                        videos[idx].link = e.target.value;
-                        setFormState({ ...formState, videos });
-                      }}
-                    />
-                    <input
-                      type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      value={video.postedOn}
-                      onChange={(e) => {
-                        const videos = [...formState.videos];
-                        videos[idx].postedOn = e.target.value;
-                        // Auto-set status to "posted" when a date is added
-                        if (e.target.value) {
-                          videos[idx].status = "posted";
-                        }
-                        setFormState({ ...formState, videos });
-                      }}
-                    />
+                    <div className="space-y-3">
+                      <input
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Video Link"
+                        value={video.link}
+                        onChange={(e) => {
+                          const videos = [...formState.videos];
+                          videos[idx].link = e.target.value;
+                          setFormState({ ...formState, videos });
+                        }}
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="date"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          value={video.postedOn}
+                          onChange={(e) => {
+                            const videos = [...formState.videos];
+                            videos[idx].postedOn = e.target.value;
+                            // Auto-set status to "posted" when a date is added
+                            if (e.target.value) {
+                              videos[idx].status = "posted";
+                            }
+                            setFormState({ ...formState, videos });
+                          }}
+                        />
+                        <input
+                          type="number"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Views"
+                          value={video.views || ""}
+                          onChange={(e) => {
+                            const videos = [...formState.videos];
+                            videos[idx].views = e.target.value;
+                            setFormState({ ...formState, videos });
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

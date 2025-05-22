@@ -1,87 +1,108 @@
 import { Influencer, Video, StatusInfo } from "../types";
 
-export const STORAGE_KEY = "influencers";
+const STORAGE_KEY = "influencers";
+const DEMO_FLAG_KEY = "influencer_demo_seeded";
 
-// Demo influencer for first-time users
-const DEMO_INFLUENCER: Influencer = {
-  id: "demo",
-  username: "demo_influencer (delete me)",
-  platform: "Both",
-  tiktokUsername: "demo.creator",
-  viewsMedian: 50000,
-  viewsTotal: 250000,
-  viewsNow: 100000,
-  paid: false,
-  videos: [
+const getDefaultDemoData = (): Influencer[] => {
+  return [
     {
-      id: 1,
-      link: "https://instagram.com/p/demo1",
-      postedOn: "2024-03-15",
-      status: "posted",
-      views: 55000
-    },
-    {
-      id: 2,
-      link: "https://instagram.com/p/demo2",
-      postedOn: "2024-03-20",
-      status: "posted",
-      views: 45000
-    },
-    {
-      id: 3,
-      link: "",
-      postedOn: "",
-      status: "approve",
-      views: 0
-    },
-    {
-      id: 4,
-      link: "",
-      postedOn: "",
-      status: "script",
-      views: 0
+      id: "demo-1",
+      username: "buzzmybrand_demo",
+      platform: "Both",
+      tiktokUsername: "buzzmybrand",
+      viewsMedian: 150000,
+      viewsTotal: 750000,
+      viewsNow: 487000,
+      paid: false,
+      videos: [
+        {
+          id: 1,
+          link: "https://www.instagram.com/reel/demo1",
+          postedOn: new Date("2024-03-01").toISOString().split('T')[0],
+          views: 185000,
+          status: "posted"
+        },
+        {
+          id: 2,
+          link: "https://www.tiktok.com/@buzzmybrand/demo2",
+          postedOn: new Date("2024-03-10").toISOString().split('T')[0],
+          views: 142000,
+          status: "posted"
+        },
+        {
+          id: 3,
+          link: "https://www.instagram.com/reel/demo3",
+          postedOn: new Date("2024-03-15").toISOString().split('T')[0],
+          views: 160000,
+          status: "posted"
+        },
+        {
+          id: 4,
+          link: "https://www.tiktok.com/@buzzmybrand/demo4",
+          postedOn: "",
+          views: 0,
+          status: "approve"
+        }
+      ]
     }
-  ]
+  ];
 };
 
-export const getStatusColor = (status: Video["status"], isPaid: boolean = false) => {
-  if (isPaid) return "bg-gray-100 text-gray-600";
+export const getStatusColor = (
+  status: "script" | "approve" | "posted",
+  paid: boolean
+): string => {
+  if (paid) return "bg-gray-100 text-gray-800";
 
   switch (status) {
-    case "script":
-      return "bg-red-100 text-red-800";
-    case "approve":
-      return "bg-yellow-100 text-yellow-800";
     case "posted":
       return "bg-green-100 text-green-800";
+    case "approve":
+      return "bg-yellow-100 text-yellow-800";
+    case "script":
+      return "bg-red-100 text-red-800";
+    default:
+      return "bg-gray-100 text-gray-800";
   }
 };
 
 export const getInfluencerStatus = (influencer: Influencer): StatusInfo => {
+  // Count videos in each status
+  const statusCounts = influencer.videos.reduce(
+    (acc, video) => {
+      acc[video.status]++;
+      return acc;
+    },
+    { script: 0, approve: 0, posted: 0 }
+  );
+
   if (influencer.paid) {
     return {
       text: "Paid",
-      className: "bg-gray-100 text-gray-600"
+      className: "bg-gray-100 text-gray-800",
     };
   }
-  
-  if (influencer.videos.some(v => v.status === "script")) {
+
+  // All videos posted
+  if (statusCounts.posted === 4) {
     return {
-      text: "Script Needed",
-      className: "bg-red-100 text-red-800"
+      text: "Posted",
+      className: "bg-green-100 text-green-800",
     };
   }
-  
-  if (influencer.videos.some(v => v.status === "approve")) {
+
+  // Has videos needing approval
+  if (statusCounts.approve > 0) {
     return {
       text: "Needs Approval",
-      className: "bg-yellow-100 text-yellow-800"
+      className: "bg-yellow-100 text-yellow-800",
     };
   }
-  
+
+  // Has videos needing scripts
   return {
-    text: "Posted",
-    className: "bg-green-100 text-green-800"
+    text: "Script Needed",
+    className: "bg-red-100 text-red-800",
   };
 };
 
@@ -90,41 +111,46 @@ export const calculateViewsNow = (videos: Video[]): number => {
 };
 
 export const loadInfluencers = (): Influencer[] => {
-  if (typeof window === "undefined") return [];
-
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      // Seed demo data only if localStorage is empty
-      const demoData = [DEMO_INFLUENCER];
-      saveInfluencers(demoData);
-      return demoData;
+    if (typeof window === "undefined") return [];
+
+    const saved     = localStorage.getItem(STORAGE_KEY);
+    const demoSeeded = localStorage.getItem(DEMO_FLAG_KEY) === "true";
+
+    // ---------- first ever launch ----------
+    if (!saved && !demoSeeded) {
+      const demo = getDefaultDemoData();
+      saveInfluencers(demo);
+      localStorage.setItem(DEMO_FLAG_KEY, "true");   // remember we seeded
+      return demo;
     }
-    
-    const influencers = JSON.parse(raw) as Influencer[];
-    // Update viewsNow based on video views
-    return influencers.map(inf => ({
-      ...inf,
-      viewsNow: calculateViewsNow(inf.videos)
-    }));
-  } catch (e) {
-    console.warn("Failed to parse influencers from localStorage", e);
+
+    // ---------- normal cases ----------
+    return saved ? JSON.parse(saved) : [];           // may be []
+  } catch (err) {
+    console.error("loadInfluencers()", err);
     return [];
   }
 };
 
-export const saveInfluencers = (influencers: Influencer[]) => {
-  if (typeof window === "undefined") return;
-  // Update viewsNow before saving
-  const updatedInfluencers = influencers.map(inf => ({
-    ...inf,
-    viewsNow: calculateViewsNow(inf.videos)
-  }));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedInfluencers));
+
+export const saveInfluencers = (influencers: Influencer[]): void => {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(influencers));
+  } catch (error) {
+    console.error("Error saving influencers:", error);
+  }
 };
 
-export const resetData = () => {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(STORAGE_KEY);
-  window.location.reload();
+export const resetData = (): void => {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.clear(); // Clear all data first
+    const demoData = getDefaultDemoData();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(demoData));
+    window.location.reload();
+  } catch (error) {
+    console.error("Error resetting data:", error);
+  }
 }; 
