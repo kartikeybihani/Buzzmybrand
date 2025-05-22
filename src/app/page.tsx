@@ -371,14 +371,14 @@ export default function InfluencerTracker() {
       </div>
 
       {/* Legend and Controls */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
+      <div className="mb-8 space-y-4 sm:space-y-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="w-full sm:w-auto">
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value as typeof filter)}
-                className="appearance-none bg-white border rounded-md px-4 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full sm:w-auto appearance-none bg-white border rounded-md px-4 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Statuses</option>
                 <option value="script">Script Needed</option>
@@ -391,7 +391,7 @@ export default function InfluencerTracker() {
                 resetForm();
                 setShowForm(true);
               }}
-              className="bg-black text-white rounded-md px-4 py-2 text-sm font-medium flex items-center gap-2"
+              className="w-full sm:w-auto bg-black text-white rounded-md px-4 py-2 text-sm font-medium flex items-center justify-center gap-2"
             >
               <svg
                 className="w-4 h-4"
@@ -411,20 +411,22 @@ export default function InfluencerTracker() {
           </div>
 
           {/* Status Legend */}
-          <div className="flex items-center gap-4 bg-gray-50 px-4 py-2 rounded-lg">
-            <span className="text-sm font-medium text-gray-700">Status:</span>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                <span className="text-sm text-gray-600">Posted</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
-                <span className="text-sm text-gray-600">Needs Approval</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                <span className="text-sm text-gray-600">Script Needed</span>
+          <div className="bg-gray-50 px-4 py-3 rounded-lg w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <span className="text-sm font-medium text-gray-700">Status:</span>
+              <div className="grid grid-cols-2 sm:flex items-start sm:items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                  <span className="text-sm text-gray-600">Posted</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                  <span className="text-sm text-gray-600">Needs Approval</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                  <span className="text-sm text-gray-600">Script Needed</span>
+                </div>
               </div>
             </div>
           </div>
@@ -432,7 +434,7 @@ export default function InfluencerTracker() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <div className="relative overflow-hidden rounded-lg group">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-50 group-hover:opacity-100 transition-opacity" />
           <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" />
@@ -471,202 +473,291 @@ export default function InfluencerTracker() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Username
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Platform
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Views Median
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Total Views
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Views Now
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Video Links
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {influencers.map((inf) => {
-              const videoStatuses = inf.videos.map((v, i) => ({
-                id: i + 1,
-                postedOn: v.postedOn,
-                views: v.views || 0,
-                status: v.status,
-              }));
-
-              return (
-                <tr key={inf.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="space-y-1">
-                      <div className="text-base font-medium bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+      {/* Responsive Table */}
+      <div className="overflow-x-auto -mx-6 px-6">
+        <div className="inline-block min-w-full align-middle">
+          <div className="overflow-hidden border rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Username
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Platform
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell"
+                  >
+                    Views Median
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell"
+                  >
+                    Total Views
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell"
+                  >
+                    Views Now
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Videos
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Status
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredInfluencers.map((inf) => (
+                  <tr key={inf.id} className="hover:bg-gray-50">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
                         {inf.username}
                       </div>
                       {inf.platform === "Both" && (
-                        <div className="text-sm font-medium bg-gradient-to-r from-gray-600 to-gray-400 bg-clip-text text-transparent">
+                        <div className="text-sm text-gray-500">
                           {inf.tiktokUsername || inf.username}
                         </div>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="space-y-2">
-                      {(inf.platform === "Instagram" ||
-                        inf.platform === "Both") && (
-                        <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                          <a
-                            href={`https://instagram.com/${inf.username}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-between text-sm text-gray-700 hover:text-blue-600 transition-colors"
-                          >
-                            <span>Instagram</span>
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="space-y-2">
+                        {(inf.platform === "Instagram" ||
+                          inf.platform === "Both") && (
+                          <div className="bg-gray-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg">
+                            <a
+                              href={`https://instagram.com/${inf.username}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between text-xs sm:text-sm text-gray-700 hover:text-blue-600 transition-colors"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                              />
-                            </svg>
-                          </a>
-                        </div>
-                      )}
-                      {(inf.platform === "TikTok" ||
-                        inf.platform === "Both") && (
-                        <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                          <a
-                            href={`https://tiktok.com/@${
-                              inf.tiktokUsername || inf.username
-                            }`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-between text-sm text-gray-700 hover:text-blue-600 transition-colors"
-                          >
-                            <span>TikTok</span>
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                              />
-                            </svg>
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {inf.viewsMedian.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {inf.viewsTotal.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {inf.viewsNow.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex -space-x-1">
-                        {inf.videos.map((video, idx) => (
-                          <div
-                            key={idx}
-                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium border-2 border-white ${getStatusColor(
-                              video.status
-                            )}`}
-                            title={`Video #${idx + 1}: ${video.status}`}
-                          >
-                            {idx + 1}
+                              <span>Instagram</span>
+                              <svg
+                                className="w-3 h-3 sm:w-4 sm:h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
+                              </svg>
+                            </a>
                           </div>
-                        ))}
+                        )}
+                        {(inf.platform === "TikTok" ||
+                          inf.platform === "Both") && (
+                          <div className="bg-gray-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg">
+                            <a
+                              href={`https://tiktok.com/@${
+                                inf.tiktokUsername || inf.username
+                              }`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between text-xs sm:text-sm text-gray-700 hover:text-blue-600 transition-colors"
+                            >
+                              <span>TikTok</span>
+                              <svg
+                                className="w-3 h-3 sm:w-4 sm:h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
+                              </svg>
+                            </a>
+                          </div>
+                        )}
                       </div>
-                      <button
-                        onClick={() => setSelectedInfluencer(inf)}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {inf.videos.some((v) => v.status === "script") ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        Script needed
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                      <span className="text-sm text-gray-900">
+                        {inf.viewsMedian.toLocaleString()}
                       </span>
-                    ) : inf.videos.some((v) => v.status === "approve") ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Approve needed
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                      <span className="text-sm text-gray-900">
+                        {inf.viewsTotal.toLocaleString()}
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Posted
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                      <span className="text-sm text-gray-900">
+                        {inf.viewsNow.toLocaleString()}
                       </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex space-x-3">
-                      <button
-                        onClick={() => handleEditInfluencer(inf)}
-                        className="text-gray-600 hover:text-blue-600 transition-colors"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex -space-x-1">
+                          {inf.videos.map((video, idx) => (
+                            <div
+                              key={idx}
+                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium border-2 border-white ${getStatusColor(
+                                video.status
+                              )}`}
+                              title={`Video #${idx + 1}: ${video.status}`}
+                            >
+                              {idx + 1}
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => setSelectedInfluencer(inf)}
+                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {influencers.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-6 py-4 text-center text-sm text-gray-500"
+                          View Details
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      {inf.videos.some((v) => v.status === "script") ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Script needed
+                        </span>
+                      ) : inf.videos.some((v) => v.status === "approve") ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Approve needed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Posted
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={() => handleEditInfluencer(inf)}
+                          className="text-gray-600 hover:text-blue-600 transition-colors"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile View Stats (visible below sm breakpoint) */}
+      <div className="sm:hidden space-y-4 mt-4">
+        {filteredInfluencers.map((inf) => (
+          <div
+            key={inf.id}
+            className="bg-white p-4 rounded-lg border space-y-3"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="font-medium">{inf.username}</div>
+                {inf.platform === "Both" && (
+                  <div className="text-sm text-gray-500">
+                    {inf.tiktokUsername}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => handleEditInfluencer(inf)}
+                className="p-2 text-gray-600 hover:text-blue-600"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  No influencers found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="bg-gray-50 p-2 rounded">
+                <div className="text-gray-500">Views Median</div>
+                <div className="font-medium">
+                  {inf.viewsMedian.toLocaleString()}
+                </div>
+              </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <div className="text-gray-500">Current Views</div>
+                <div className="font-medium">
+                  {inf.viewsNow.toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex -space-x-1">
+                {inf.videos.map((video, idx) => (
+                  <div
+                    key={idx}
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 border-white ${getStatusColor(
+                      video.status
+                    )}`}
+                    title={`Video #${idx + 1}: ${video.status}`}
+                  >
+                    {idx + 1}
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setSelectedInfluencer(inf)}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Add Influencer Modal */}
@@ -948,8 +1039,8 @@ export default function InfluencerTracker() {
             if (e.target === e.currentTarget) setSelectedInfluencer(null);
           }}
         >
-          <div className="bg-white rounded-xl w-full max-w-2xl overflow-hidden shadow-xl animate-modal-pop">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div className="bg-white rounded-xl w-full max-w-2xl overflow-hidden shadow-xl animate-modal-pop max-h-[90vh] flex flex-col">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
                   Videos for @{selectedInfluencer.username}
@@ -979,7 +1070,7 @@ export default function InfluencerTracker() {
                 </svg>
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-4 sm:p-6 overflow-y-auto">
               <div className="grid grid-cols-1 gap-4">
                 {selectedInfluencer.videos.map((video, idx) => (
                   <div
@@ -1031,7 +1122,7 @@ export default function InfluencerTracker() {
                 ))}
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-gray-50">
               <div className="flex justify-between items-center">
                 <div className="text-sm text-gray-600">
                   Total Views: {selectedInfluencer.viewsTotal.toLocaleString()}
