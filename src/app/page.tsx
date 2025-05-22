@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { v4 as uuid } from "uuid";
 import Image from "next/image";
 
@@ -37,6 +37,7 @@ interface FormState {
     postedOn: string;
     status: "script" | "approve" | "posted";
   }[];
+  sameUsername?: boolean;
 }
 
 /*************************************
@@ -189,14 +190,71 @@ const loadInfluencers = (): Influencer[] => {
 };
 
 /*************************************
+ * Hooks
+ *************************************/
+const useModalFocus = (isOpen: boolean) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const focusableElements = modalRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstFocusable = focusableElements?.[0] as HTMLElement;
+      const lastFocusable = focusableElements?.[
+        focusableElements.length - 1
+      ] as HTMLElement;
+
+      const handleTabKey = (e: KeyboardEvent) => {
+        if (e.key === "Tab") {
+          if (e.shiftKey) {
+            if (document.activeElement === firstFocusable) {
+              e.preventDefault();
+              lastFocusable?.focus();
+            }
+          } else {
+            if (document.activeElement === lastFocusable) {
+              e.preventDefault();
+              firstFocusable?.focus();
+            }
+          }
+        }
+      };
+
+      const handleEscapeKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          if (modalRef.current) {
+            const closeButton = modalRef.current.querySelector(
+              '[aria-label="Close modal"]'
+            ) as HTMLButtonElement;
+            closeButton?.click();
+          }
+        }
+      };
+
+      document.addEventListener("keydown", handleTabKey);
+      document.addEventListener("keydown", handleEscapeKey);
+      firstFocusable?.focus();
+
+      return () => {
+        document.removeEventListener("keydown", handleTabKey);
+        document.removeEventListener("keydown", handleEscapeKey);
+      };
+    }
+  }, [isOpen]);
+
+  return modalRef;
+};
+
+/*************************************
  * Main Component
  *************************************/
 export default function InfluencerTracker() {
   const [influencers, setInfluencers] = useState<Influencer[]>(SAMPLE_DATA);
   const [showForm, setShowForm] = useState(false);
-  const [filter, setFilter] = useState<"all" | "script" | "approve" | "posted">(
-    "all"
-  );
+  const [filter, setFilter] = useState<
+    "all" | "script" | "approve" | "posted" | "paid"
+  >("all");
   const [showAnalytics, setShowAnalytics] = useState(false);
 
   // form state
@@ -224,6 +282,11 @@ export default function InfluencerTracker() {
   // Add search state
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Create refs for each modal
+  const analyticsModalRef = useModalFocus(showAnalytics);
+  const formModalRef = useModalFocus(showForm);
+  const videosModalRef = useModalFocus(!!selectedInfluencer);
+
   useEffect(() => {
     const savedInfluencers = loadInfluencers();
     setInfluencers(savedInfluencers);
@@ -239,16 +302,54 @@ export default function InfluencerTracker() {
     0
   );
 
-  // Add getStatusColor helper function
-  const getStatusColor = (status: Video["status"]) => {
+  // Add togglePaid function
+  const togglePaid = (id: string) => {
+    setInfluencers((prev) =>
+      prev.map((inf) => (inf.id === id ? { ...inf, paid: !inf.paid } : inf))
+    );
+  };
+
+  // Update getStatusColor to handle paid state
+  const getStatusColor = (status: Video["status"], isPaid: boolean = false) => {
+    if (isPaid) return "bg-gray-100 text-gray-600";
+
     switch (status) {
-      case "posted":
-        return "bg-green-100 text-green-800";
-      case "approve":
-        return "bg-yellow-100 text-yellow-800";
       case "script":
         return "bg-red-100 text-red-800";
+      case "approve":
+        return "bg-yellow-100 text-yellow-800";
+      case "posted":
+        return "bg-green-100 text-green-800";
     }
+  };
+
+  // Add helper for row-level status
+  const getInfluencerStatus = (influencer: Influencer) => {
+    if (influencer.paid) {
+      return {
+        text: "Paid",
+        className: "bg-gray-100 text-gray-600",
+      };
+    }
+
+    if (influencer.videos.some((v) => v.status === "script")) {
+      return {
+        text: "Script Needed",
+        className: "bg-red-100 text-red-800",
+      };
+    }
+
+    if (influencer.videos.some((v) => v.status === "approve")) {
+      return {
+        text: "Needs Approval",
+        className: "bg-yellow-100 text-yellow-800",
+      };
+    }
+
+    return {
+      text: "Posted",
+      className: "bg-green-100 text-green-800",
+    };
   };
 
   /************ Handlers ************/
@@ -342,8 +443,23 @@ export default function InfluencerTracker() {
         inf.tiktokUsername.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (!matchesSearch) return false;
-    if (filter === "all") return true;
-    return inf.videos.some((v) => v.status === filter);
+
+    const status = getInfluencerStatus(inf);
+
+    switch (filter) {
+      case "all":
+        return true;
+      case "paid":
+        return inf.paid;
+      case "script":
+        return status.text === "Script Needed";
+      case "approve":
+        return status.text === "Needs Approval";
+      case "posted":
+        return status.text === "Posted";
+      default:
+        return true;
+    }
   });
 
   /*************************************
@@ -375,75 +491,57 @@ export default function InfluencerTracker() {
       </div>
 
       {/* Search and Controls */}
-      <div className="mb-8 flex flex-col sm:flex-row gap-4 items-start justify-between">
-        <div className="flex flex-col sm:flex-row gap-4 items-start flex-grow">
-          <div className="relative w-full sm:w-96">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+      <div className="mb-8 flex items-center gap-4">
+        <div className="relative w-64">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg
+              className="h-5 w-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Search influencers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
               <svg
-                className="h-5 w-5 text-gray-400"
+                className="h-5 w-5 text-gray-400 hover:text-gray-500"
                 fill="none"
-                stroke="currentColor"
                 viewBox="0 0 24 24"
+                stroke="currentColor"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </div>
-            <input
-              type="text"
-              placeholder="Search influencers..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
-                <svg
-                  className="h-5 w-5 text-gray-400 hover:text-gray-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            )}
-          </div>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as typeof filter)}
-            className="w-full sm:w-48 appearance-none bg-white border rounded-md px-4 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 relative bg-none"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-              backgroundPosition: "right 0.5rem center",
-              backgroundRepeat: "no-repeat",
-              backgroundSize: "1.5em 1.5em",
-            }}
-          >
-            <option value="all">All Statuses</option>
-            <option value="script">Script Needed</option>
-            <option value="approve">Needs Approval</option>
-            <option value="posted">Posted</option>
-          </select>
+            </button>
+          )}
         </div>
         <button
           onClick={() => {
             resetForm();
             setShowForm(true);
           }}
-          className="w-full sm:w-auto bg-black text-white rounded-md px-6 py-2 text-sm font-medium flex items-center justify-center gap-2 min-w-[160px]"
+          className="bg-black text-white rounded-lg px-6 py-2 text-sm font-medium flex items-center justify-center gap-2 hover:bg-gray-900 transition-colors whitespace-nowrap"
         >
           <svg
             className="w-4 h-4"
@@ -465,22 +563,66 @@ export default function InfluencerTracker() {
       {/* Status Legend and Stats */}
       <div className="mb-8">
         <div className="bg-gray-50 px-6 py-4 rounded-lg">
-          {/* Legend */}
-          <div className="flex flex-wrap items-center gap-6 mb-6">
-            <span className="text-sm font-medium text-gray-700">Status:</span>
-            <div className="flex flex-wrap items-center gap-6">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-green-100 border border-green-800"></div>
-                <span className="text-sm text-gray-600">Posted</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-yellow-100 border border-yellow-800"></div>
-                <span className="text-sm text-gray-600">Needs Approval</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-100 border border-red-800"></div>
-                <span className="text-sm text-gray-600">Script Needed</span>
-              </div>
+          {/* Legend as Filter Buttons */}
+          <div className="flex flex-wrap items-center gap-4 mb-6">
+            <span className="text-sm font-medium text-gray-700">
+              Filter by:
+            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setFilter("all")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-all ${
+                  filter === "all"
+                    ? "bg-gray-900 text-white shadow-sm"
+                    : "bg-white text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter("posted")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-all ${
+                  filter === "posted"
+                    ? "bg-green-100 text-green-800 shadow-sm ring-1 ring-green-200"
+                    : "bg-green-50 text-green-800 hover:bg-green-100"
+                }`}
+              >
+                <div className="w-2 h-2 rounded-sm bg-green-800"></div>
+                Posted
+              </button>
+              <button
+                onClick={() => setFilter("approve")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-all ${
+                  filter === "approve"
+                    ? "bg-yellow-100 text-yellow-800 shadow-sm ring-1 ring-yellow-200"
+                    : "bg-yellow-50 text-yellow-800 hover:bg-yellow-100"
+                }`}
+              >
+                <div className="w-2 h-2 rounded-sm bg-yellow-800"></div>
+                Needs Approval
+              </button>
+              <button
+                onClick={() => setFilter("script")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-all ${
+                  filter === "script"
+                    ? "bg-red-100 text-red-800 shadow-sm ring-1 ring-red-200"
+                    : "bg-red-50 text-red-800 hover:bg-red-100"
+                }`}
+              >
+                <div className="w-2 h-2 rounded-sm bg-red-800"></div>
+                Script Needed
+              </button>
+              <button
+                onClick={() => setFilter("paid")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-all ${
+                  filter === "paid"
+                    ? "bg-gray-200 text-gray-800 shadow-sm ring-1 ring-gray-300"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <div className="w-2 h-2 rounded-sm bg-gray-600"></div>
+                Paid
+              </button>
             </div>
           </div>
 
@@ -593,24 +735,60 @@ export default function InfluencerTracker() {
                   <tr>
                     <td colSpan={8} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
-                        <h3 className="text-sm font-medium text-gray-900 mb-1">
-                          No influencers found with that name
+                        <svg
+                          className="w-12 h-12 text-gray-400 mb-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                          />
+                        </svg>
+                        <h3 className="text-lg font-medium text-gray-900 mb-1">
+                          No influencers found
                         </h3>
+                        <p className="text-sm text-gray-500">
+                          {searchQuery
+                            ? `No influencers match "${searchQuery}"`
+                            : filter !== "all"
+                            ? `No influencers with status "${filter}"`
+                            : "Try adjusting your filters"}
+                        </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   filteredInfluencers.map((inf) => (
-                    <tr key={inf.id} className="hover:bg-gray-50">
+                    <tr
+                      key={inf.id}
+                      className={`hover:bg-gray-50 transition-colors ${
+                        inf.paid ? "opacity-60" : ""
+                      }`}
+                    >
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {inf.username}
-                        </div>
-                        {inf.platform === "Both" && (
-                          <div className="text-sm text-gray-500">
-                            {inf.tiktokUsername || inf.username}
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={inf.paid}
+                            onChange={() => togglePaid(inf.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            aria-label="Mark as paid"
+                          />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {inf.username}
+                            </div>
+                            {inf.platform === "Both" && (
+                              <div className="text-sm text-gray-500">
+                                {inf.tiktokUsername || inf.username}
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <div className="space-y-2">
@@ -709,19 +887,16 @@ export default function InfluencerTracker() {
                         </div>
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                        {inf.videos.some((v) => v.status === "script") ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            Script needed
-                          </span>
-                        ) : inf.videos.some((v) => v.status === "approve") ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            Approve needed
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Posted
-                          </span>
-                        )}
+                        {(() => {
+                          const status = getInfluencerStatus(inf);
+                          return (
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.className}`}
+                            >
+                              {status.text}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex space-x-3">
@@ -761,11 +936,20 @@ export default function InfluencerTracker() {
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowAnalytics(false);
           }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="analytics-title"
         >
-          <div className="bg-white rounded-xl w-full max-w-4xl overflow-hidden shadow-xl animate-modal-pop max-h-[90vh] flex flex-col">
+          <div
+            ref={analyticsModalRef}
+            className="bg-white rounded-xl w-full max-w-4xl overflow-hidden shadow-xl animate-modal-pop max-h-[90vh] flex flex-col"
+          >
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2
+                  id="analytics-title"
+                  className="text-xl font-bold text-gray-900"
+                >
                   Campaign Analytics
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
@@ -775,6 +959,7 @@ export default function InfluencerTracker() {
               <button
                 onClick={() => setShowAnalytics(false)}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Close modal"
               >
                 <svg
                   className="w-5 h-5 text-gray-500"
@@ -851,12 +1036,17 @@ export default function InfluencerTracker() {
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowForm(false);
           }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="form-title"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-2xl overflow-hidden relative animate-modal-pop shadow-modal flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
+          <div
+            ref={formModalRef}
+            className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-2xl overflow-hidden relative animate-modal-pop shadow-modal flex flex-col max-h-[90vh]"
+          >
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 id="form-title" className="text-xl font-bold text-gray-900">
                   {editingInfluencer ? "Edit Influencer" : "Add Influencer"}
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
@@ -868,6 +1058,7 @@ export default function InfluencerTracker() {
               <button
                 onClick={() => setShowForm(false)}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Close modal"
               >
                 <svg
                   className="w-5 h-5 text-gray-500"
@@ -894,7 +1085,7 @@ export default function InfluencerTracker() {
                     Platform
                   </label>
                   <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:border-2 transition-all"
                     value={formState.platform}
                     onChange={(e) =>
                       setFormState({
@@ -920,15 +1111,15 @@ export default function InfluencerTracker() {
                         <label className="flex items-center space-x-2">
                           <input
                             type="checkbox"
+                            checked={formState.sameUsername}
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             onChange={(e) => {
-                              if (e.target.checked) {
-                                // Copy Instagram username to TikTok
-                                setFormState((prev) => ({
-                                  ...prev,
-                                  tiktokUsername: prev.username,
-                                }));
-                              }
+                              const checked = e.target.checked;
+                              setFormState((prev) => ({
+                                ...prev,
+                                sameUsername: checked,
+                                tiktokUsername: checked ? prev.username : "",
+                              }));
                             }}
                           />
                           <span className="text-sm text-blue-800">
@@ -946,15 +1137,20 @@ export default function InfluencerTracker() {
                               @
                             </span>
                             <input
-                              className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                              className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:border-2 transition-all"
                               placeholder="username"
                               value={formState.username}
-                              onChange={(e) =>
-                                setFormState({
-                                  ...formState,
-                                  username: e.target.value,
-                                })
-                              }
+                              onChange={(e) => {
+                                const newUsername = e.target.value;
+                                setFormState((prev) => ({
+                                  ...prev,
+                                  username: newUsername,
+                                  // If sameUsername is checked, update TikTok username too
+                                  ...(prev.sameUsername && {
+                                    tiktokUsername: newUsername,
+                                  }),
+                                }));
+                              }}
                             />
                           </div>
                         </div>
@@ -967,7 +1163,7 @@ export default function InfluencerTracker() {
                               @
                             </span>
                             <input
-                              className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                              className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:border-2 transition-all disabled:bg-gray-50 disabled:text-gray-500"
                               placeholder="username"
                               value={formState.tiktokUsername || ""}
                               onChange={(e) =>
@@ -976,6 +1172,7 @@ export default function InfluencerTracker() {
                                   tiktokUsername: e.target.value,
                                 })
                               }
+                              disabled={formState.sameUsername}
                             />
                           </div>
                         </div>
@@ -991,7 +1188,7 @@ export default function InfluencerTracker() {
                           @
                         </span>
                         <input
-                          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:border-2 transition-all"
                           placeholder="username"
                           value={formState.username}
                           onChange={(e) =>
@@ -1012,7 +1209,7 @@ export default function InfluencerTracker() {
                   </label>
                   <input
                     type="number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:border-2 transition-all"
                     placeholder="0"
                     value={formState.viewsMedian}
                     onChange={(e) =>
@@ -1040,7 +1237,7 @@ export default function InfluencerTracker() {
                             Video #{idx + 1}
                           </span>
                           <select
-                            className="text-sm px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="text-sm px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:border-2 transition-all"
                             value={video.status}
                             onChange={(e) => {
                               const videos = [...formState.videos];
@@ -1055,7 +1252,7 @@ export default function InfluencerTracker() {
                           </select>
                         </div>
                         <input
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:border-2 transition-all"
                           placeholder="Video Link"
                           value={video.link}
                           onChange={(e) => {
@@ -1066,11 +1263,15 @@ export default function InfluencerTracker() {
                         />
                         <input
                           type="date"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:border-2 transition-all"
                           value={video.postedOn}
                           onChange={(e) => {
                             const videos = [...formState.videos];
                             videos[idx].postedOn = e.target.value;
+                            // Auto-set status to "posted" when a date is added
+                            if (e.target.value) {
+                              videos[idx].status = "posted";
+                            }
                             setFormState({ ...formState, videos });
                           }}
                         />
@@ -1115,18 +1316,27 @@ export default function InfluencerTracker() {
         </div>
       )}
 
-      {/* Add Videos Modal */}
+      {/* Videos Modal */}
       {selectedInfluencer && (
         <div
           className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) setSelectedInfluencer(null);
           }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="videos-title"
         >
-          <div className="bg-white rounded-xl w-full max-w-2xl overflow-hidden shadow-xl animate-modal-pop max-h-[90vh] flex flex-col">
+          <div
+            ref={videosModalRef}
+            className="bg-white rounded-xl w-full max-w-2xl overflow-hidden shadow-xl animate-modal-pop max-h-[90vh] flex flex-col"
+          >
             <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2
+                  id="videos-title"
+                  className="text-xl font-bold text-gray-900"
+                >
                   Videos for @{selectedInfluencer.username}
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
@@ -1138,6 +1348,7 @@ export default function InfluencerTracker() {
               <button
                 onClick={() => setSelectedInfluencer(null)}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Close modal"
               >
                 <svg
                   className="w-5 h-5 text-gray-500"
@@ -1155,7 +1366,7 @@ export default function InfluencerTracker() {
               </button>
             </div>
             <div className="p-4 sm:p-6 overflow-y-auto">
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {selectedInfluencer.videos.map((video, idx) => (
                   <div
                     key={idx}
