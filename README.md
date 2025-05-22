@@ -49,5 +49,5 @@ This project has been an interesting journey of combining different tools and ap
 1. Using GPT-4 for planning and architecture decisions has helped maintain a clear vision
 2. Cursor Pro has been great for the actual coding work
 3. The combination of Next.js and Tailwind has made it possible to create a modern, responsive interface quickly
-4. Total development time from zero to completion: approximately 4 hours
+4. Total development time from zero to completion: approximately 4 hours - probably would have been faster if I had more context had a few confusing things like 'views now' and also if I hadn't added some extra stuff for myself.
 5. Made a lot of new changes for real-world.
