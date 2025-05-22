@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { v4 as uuid } from "uuid";
+import Image from "next/image";
 
 /*************************************
  * Types
@@ -187,11 +188,6 @@ const loadInfluencers = (): Influencer[] => {
   }
 };
 
-const saveInfluencers = (data: Influencer[]) => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-};
-
 /*************************************
  * Main Component
  *************************************/
@@ -201,7 +197,7 @@ export default function InfluencerTracker() {
   const [filter, setFilter] = useState<"all" | "script" | "approve" | "posted">(
     "all"
   );
-  const [isClient, setIsClient] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   // form state
   const [formState, setFormState] = useState<FormState>({
@@ -228,21 +224,10 @@ export default function InfluencerTracker() {
   // Add search state
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Add analytics modal state
-  const [showAnalytics, setShowAnalytics] = useState(false);
-
   useEffect(() => {
-    setIsClient(true);
     const savedInfluencers = loadInfluencers();
     setInfluencers(savedInfluencers);
   }, []);
-
-  // Save when influencers change
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(influencers));
-    }
-  }, [influencers]);
 
   // Derived stats
   const campaignViewsTotal = influencers.reduce(
@@ -341,12 +326,6 @@ export default function InfluencerTracker() {
     setShowForm(false);
   };
 
-  const togglePaid = (id: string) => {
-    setInfluencers((prev) =>
-      prev.map((inf) => (inf.id === id ? { ...inf, paid: !inf.paid } : inf))
-    );
-  };
-
   // Add delete handler
   const handleDeleteInfluencer = (id: string) => {
     if (window.confirm("Are you sure you want to delete this influencer?")) {
@@ -375,7 +354,15 @@ export default function InfluencerTracker() {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <img src="/buzz.png" alt="BuzzMyBrand Logo" className="h-10 w-auto" />
+          <div className="relative h-10 w-auto">
+            <Image
+              src="/buzz.png"
+              alt="BuzzMyBrand Logo"
+              width={40}
+              height={40}
+              priority
+            />
+          </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               Influencer Post Tracker
