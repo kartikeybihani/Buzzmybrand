@@ -1,5 +1,4 @@
 import { FormState } from "../types";
-import { useRef } from "react";
 import { useModalFocus } from "../hooks/useModalFocus";
 
 interface Props {

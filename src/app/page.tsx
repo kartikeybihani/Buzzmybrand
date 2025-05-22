@@ -8,6 +8,7 @@ import {
   saveInfluencers,
   getInfluencerStatus,
   getStatusColor,
+  resetData,
 } from "../utils/influencer";
 import { InfluencerForm } from "../components/InfluencerForm";
 import { VideosModal } from "../components/VideosModal";
@@ -26,6 +27,7 @@ export default function InfluencerTracker() {
   );
   const [selectedInfluencer, setSelectedInfluencer] =
     useState<Influencer | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // form state
   const [formState, setFormState] = useState<FormState>({
@@ -41,8 +43,18 @@ export default function InfluencerTracker() {
   });
 
   useEffect(() => {
-    const savedInfluencers = loadInfluencers();
-    setInfluencers(savedInfluencers);
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const savedInfluencers = loadInfluencers();
+        setInfluencers(savedInfluencers);
+      } catch (error) {
+        console.error("Error loading influencers:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
   }, []);
 
   // Derived stats
@@ -201,6 +213,20 @@ export default function InfluencerTracker() {
             </p>
           </div>
         </div>
+        <button
+          onClick={() => {
+            if (
+              window.confirm(
+                "Are you sure you want to reset all data? This cannot be undone."
+              )
+            ) {
+              resetData();
+            }
+          }}
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          Reset Data
+        </button>
       </div>
 
       {/* Search and Controls */}
@@ -447,11 +473,23 @@ export default function InfluencerTracker() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredInfluencers.length === 0 ? (
+                    {isLoading ? (
                       <tr>
                         <td colSpan={8} className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center justify-center">
-                            {influencers.length === 0 ? (
+                            <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <p className="text-sm text-gray-500">
+                              Loading influencers...
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : filteredInfluencers.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            {filteredInfluencers.length === 0 &&
+                            influencers.length === 0 ? (
                               <>
                                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                                   <svg
@@ -557,8 +595,8 @@ export default function InfluencerTracker() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="space-y-2">
+                          <td className="pl-6 pr-6 py-4 whitespace-nowrap">
+                            <div className="space-y-1.5">
                               {(inf.platform === "Instagram" ||
                                 inf.platform === "Both") && (
                                 <div className="bg-gray-50 px-3 py-2 rounded-lg">
@@ -675,8 +713,9 @@ export default function InfluencerTracker() {
                             <div className="flex space-x-3">
                               <button
                                 onClick={() => handleEditInfluencer(inf)}
-                                className="text-gray-600 hover:text-blue-600 transition-colors"
+                                className="text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-2"
                               >
+                                <span>Edit</span>
                                 <svg
                                   className="w-5 h-5"
                                   fill="none"
@@ -705,10 +744,18 @@ export default function InfluencerTracker() {
 
         {/* Mobile Card View */}
         <div className="md:hidden space-y-4">
-          {filteredInfluencers.length === 0 ? (
+          {isLoading ? (
             <div className="text-center py-12">
               <div className="flex flex-col items-center justify-center">
-                {influencers.length === 0 ? (
+                <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-sm text-gray-500">Loading influencers...</p>
+              </div>
+            </div>
+          ) : filteredInfluencers.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="flex flex-col items-center justify-center">
+                {filteredInfluencers.length === 0 &&
+                influencers.length === 0 ? (
                   <>
                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                       <svg
@@ -937,8 +984,9 @@ export default function InfluencerTracker() {
                 <div className="px-4 py-3 bg-gray-50 flex justify-end">
                   <button
                     onClick={() => handleEditInfluencer(inf)}
-                    className="text-gray-600 hover:text-blue-600 transition-colors"
+                    className="text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-2"
                   >
+                    <span>Edit</span>
                     <svg
                       className="w-5 h-5"
                       fill="none"
