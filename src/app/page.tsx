@@ -225,6 +225,12 @@ export default function InfluencerTracker() {
   const [selectedInfluencer, setSelectedInfluencer] =
     useState<Influencer | null>(null);
 
+  // Add search state
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Add analytics modal state
+  const [showAnalytics, setShowAnalytics] = useState(false);
+
   useEffect(() => {
     setIsClient(true);
     const savedInfluencers = loadInfluencers();
@@ -351,6 +357,12 @@ export default function InfluencerTracker() {
 
   /************ Derived ************/
   const filteredInfluencers = influencers.filter((inf) => {
+    const matchesSearch =
+      inf.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (inf.tiktokUsername &&
+        inf.tiktokUsername.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    if (!matchesSearch) return false;
     if (filter === "all") return true;
     return inf.videos.some((v) => v.status === filter);
   });
@@ -361,40 +373,27 @@ export default function InfluencerTracker() {
   return (
     <main className="min-h-screen bg-white p-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Influencer Post Tracker
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Track and manage influencer campaign posts
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <img src="/buzz.png" alt="BuzzMyBrand Logo" className="h-10 w-auto" />
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Influencer Post Tracker
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Track and manage influencer campaign posts
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Legend and Controls */}
-      <div className="mb-8 space-y-4 sm:space-y-0">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="w-full sm:w-auto">
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value as typeof filter)}
-                className="w-full sm:w-auto appearance-none bg-white border rounded-md px-4 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Statuses</option>
-                <option value="script">Script Needed</option>
-                <option value="approve">Needs Approval</option>
-                <option value="posted">Posted</option>
-              </select>
-            </div>
-            <button
-              onClick={() => {
-                resetForm();
-                setShowForm(true);
-              }}
-              className="w-full sm:w-auto bg-black text-white rounded-md px-4 py-2 text-sm font-medium flex items-center justify-center gap-2"
-            >
+      {/* Search and Controls */}
+      <div className="mb-8 flex flex-col sm:flex-row gap-4 items-start justify-between">
+        <div className="flex flex-col sm:flex-row gap-4 items-start flex-grow">
+          <div className="relative w-full sm:w-96">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg
-                className="w-4 h-4"
+                className="h-5 w-5 text-gray-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -403,78 +402,150 @@ export default function InfluencerTracker() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 4v16m8-8H4"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              Add Influencer
-            </button>
+            </div>
+            <input
+              type="text"
+              placeholder="Search influencers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <svg
+                  className="h-5 w-5 text-gray-400 hover:text-gray-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as typeof filter)}
+            className="w-full sm:w-48 appearance-none bg-white border rounded-md px-4 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 relative bg-none"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+              backgroundPosition: "right 0.5rem center",
+              backgroundRepeat: "no-repeat",
+              backgroundSize: "1.5em 1.5em",
+            }}
+          >
+            <option value="all">All Statuses</option>
+            <option value="script">Script Needed</option>
+            <option value="approve">Needs Approval</option>
+            <option value="posted">Posted</option>
+          </select>
+        </div>
+        <button
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+          className="w-full sm:w-auto bg-black text-white rounded-md px-6 py-2 text-sm font-medium flex items-center justify-center gap-2 min-w-[160px]"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          Add Influencer
+        </button>
+      </div>
 
-          {/* Status Legend */}
-          <div className="bg-gray-50 px-4 py-3 rounded-lg w-full sm:w-auto">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <span className="text-sm font-medium text-gray-700">Status:</span>
-              <div className="grid grid-cols-2 sm:flex items-start sm:items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                  <span className="text-sm text-gray-600">Posted</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
-                  <span className="text-sm text-gray-600">Needs Approval</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                  <span className="text-sm text-gray-600">Script Needed</span>
-                </div>
+      {/* Status Legend and Stats */}
+      <div className="mb-8">
+        <div className="bg-gray-50 px-6 py-4 rounded-lg">
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-6 mb-6">
+            <span className="text-sm font-medium text-gray-700">Status:</span>
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-green-100 border border-green-800"></div>
+                <span className="text-sm text-gray-600">Posted</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-100 border border-yellow-800"></div>
+                <span className="text-sm text-gray-600">Needs Approval</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-100 border border-red-800"></div>
+                <span className="text-sm text-gray-600">Script Needed</span>
               </div>
             </div>
           </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-gray-600">
+                  Total Campaign Views
+                </h3>
+                <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  {campaignViewsTotal.toLocaleString()}
+                </span>
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-gray-600">
+                  Current Views
+                </h3>
+                <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  {campaignViewsNow.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Analytics Button */}
+          <button
+            onClick={() => setShowAnalytics(true)}
+            className="w-full bg-black text-white rounded-md px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-gray-900 transition-colors"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            View Analytics
+          </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <div className="relative overflow-hidden rounded-lg group">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-50 group-hover:opacity-100 transition-opacity" />
-          <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" />
-          <div className="relative p-6 border border-blue-100">
-            <h3 className="text-gray-600 text-sm font-medium group-hover:text-blue-600 transition-colors">
-              Total Influencers
-            </h3>
-            <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              {influencers.length}
-            </p>
-          </div>
-        </div>
-        <div className="relative overflow-hidden rounded-lg group">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-50 group-hover:opacity-100 transition-opacity" />
-          <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" />
-          <div className="relative p-6 border border-blue-100">
-            <h3 className="text-gray-600 text-sm font-medium group-hover:text-blue-600 transition-colors">
-              Total Campaign Views
-            </h3>
-            <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              {campaignViewsTotal.toLocaleString()}
-            </p>
-          </div>
-        </div>
-        <div className="relative overflow-hidden rounded-lg group">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50 opacity-50 group-hover:opacity-100 transition-opacity" />
-          <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" />
-          <div className="relative p-6 border border-blue-100">
-            <h3 className="text-gray-600 text-sm font-medium group-hover:text-blue-600 transition-colors">
-              Current Views
-            </h3>
-            <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              {campaignViewsNow.toLocaleString()}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Responsive Table */}
-      <div className="overflow-x-auto -mx-6 px-6">
+      {/* Table */}
+      <div className="overflow-x-auto">
         <div className="inline-block min-w-full align-middle">
           <div className="overflow-hidden border rounded-lg">
             <table className="min-w-full divide-y divide-gray-200">
@@ -482,230 +553,244 @@ export default function InfluencerTracker() {
                 <tr>
                   <th
                     scope="col"
-                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider"
                   >
                     Username
                   </th>
                   <th
                     scope="col"
-                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider"
                   >
                     Platform
                   </th>
                   <th
                     scope="col"
-                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider hidden sm:table-cell"
                   >
                     Views Median
                   </th>
                   <th
                     scope="col"
-                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider hidden lg:table-cell"
                   >
                     Total Views
                   </th>
                   <th
                     scope="col"
-                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider hidden md:table-cell"
                   >
                     Views Now
                   </th>
                   <th
                     scope="col"
-                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider"
                   >
                     Videos
                   </th>
                   <th
                     scope="col"
-                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider"
                   >
                     Status
                   </th>
                   <th
                     scope="col"
-                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider"
                   >
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredInfluencers.map((inf) => (
-                  <tr key={inf.id} className="hover:bg-gray-50">
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {inf.username}
-                      </div>
-                      {inf.platform === "Both" && (
-                        <div className="text-sm text-gray-500">
-                          {inf.tiktokUsername || inf.username}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="space-y-2">
-                        {(inf.platform === "Instagram" ||
-                          inf.platform === "Both") && (
-                          <div className="bg-gray-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg">
-                            <a
-                              href={`https://instagram.com/${inf.username}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-between text-xs sm:text-sm text-gray-700 hover:text-blue-600 transition-colors"
-                            >
-                              <span>Instagram</span>
-                              <svg
-                                className="w-3 h-3 sm:w-4 sm:h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                />
-                              </svg>
-                            </a>
-                          </div>
-                        )}
-                        {(inf.platform === "TikTok" ||
-                          inf.platform === "Both") && (
-                          <div className="bg-gray-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg">
-                            <a
-                              href={`https://tiktok.com/@${
-                                inf.tiktokUsername || inf.username
-                              }`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-between text-xs sm:text-sm text-gray-700 hover:text-blue-600 transition-colors"
-                            >
-                              <span>TikTok</span>
-                              <svg
-                                className="w-3 h-3 sm:w-4 sm:h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                />
-                              </svg>
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                      <span className="text-sm text-gray-900">
-                        {inf.viewsMedian.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
-                      <span className="text-sm text-gray-900">
-                        {inf.viewsTotal.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                      <span className="text-sm text-gray-900">
-                        {inf.viewsNow.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex -space-x-1">
-                          {inf.videos.map((video, idx) => (
-                            <div
-                              key={idx}
-                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium border-2 border-white ${getStatusColor(
-                                video.status
-                              )}`}
-                              title={`Video #${idx + 1}: ${video.status}`}
-                            >
-                              {idx + 1}
-                            </div>
-                          ))}
-                        </div>
-                        <button
-                          onClick={() => setSelectedInfluencer(inf)}
-                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          View Details
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      {inf.videos.some((v) => v.status === "script") ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          Script needed
-                        </span>
-                      ) : inf.videos.some((v) => v.status === "approve") ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Approve needed
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Posted
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex space-x-3">
-                        <button
-                          onClick={() => handleEditInfluencer(inf)}
-                          className="text-gray-600 hover:text-blue-600 transition-colors"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                        </button>
+                {filteredInfluencers.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <h3 className="text-sm font-medium text-gray-900 mb-1">
+                          No influencers found with that name
+                        </h3>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredInfluencers.map((inf) => (
+                    <tr key={inf.id} className="hover:bg-gray-50">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {inf.username}
+                        </div>
+                        {inf.platform === "Both" && (
+                          <div className="text-sm text-gray-500">
+                            {inf.tiktokUsername || inf.username}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <div className="space-y-2">
+                          {(inf.platform === "Instagram" ||
+                            inf.platform === "Both") && (
+                            <div className="bg-gray-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg">
+                              <a
+                                href={`https://instagram.com/${inf.username}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between text-xs sm:text-sm text-gray-700 hover:text-blue-600 transition-colors"
+                              >
+                                <span>Instagram</span>
+                                <svg
+                                  className="w-3 h-3 sm:w-4 sm:h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                  />
+                                </svg>
+                              </a>
+                            </div>
+                          )}
+                          {(inf.platform === "TikTok" ||
+                            inf.platform === "Both") && (
+                            <div className="bg-gray-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg">
+                              <a
+                                href={`https://tiktok.com/@${
+                                  inf.tiktokUsername || inf.username
+                                }`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between text-xs sm:text-sm text-gray-700 hover:text-blue-600 transition-colors"
+                              >
+                                <span>TikTok</span>
+                                <svg
+                                  className="w-3 h-3 sm:w-4 sm:h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                  />
+                                </svg>
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                        <span className="text-sm text-gray-900">
+                          {inf.viewsMedian.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                        <span className="text-sm text-gray-900">
+                          {inf.viewsTotal.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                        <span className="text-sm text-gray-900">
+                          {inf.viewsNow.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex -space-x-1">
+                            {inf.videos.map((video, idx) => (
+                              <div
+                                key={idx}
+                                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium border-2 border-white ${getStatusColor(
+                                  video.status
+                                )}`}
+                                title={`Video #${idx + 1}: ${video.status}`}
+                              >
+                                {idx + 1}
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => setSelectedInfluencer(inf)}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        {inf.videos.some((v) => v.status === "script") ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Script needed
+                          </span>
+                        ) : inf.videos.some((v) => v.status === "approve") ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Approve needed
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Posted
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex space-x-3">
+                          <button
+                            onClick={() => handleEditInfluencer(inf)}
+                            className="text-gray-600 hover:text-blue-600 transition-colors"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      {/* Mobile View Stats (visible below sm breakpoint) */}
-      <div className="sm:hidden space-y-4 mt-4">
-        {filteredInfluencers.map((inf) => (
-          <div
-            key={inf.id}
-            className="bg-white p-4 rounded-lg border space-y-3"
-          >
-            <div className="flex justify-between items-start">
+      {/* Analytics Modal */}
+      {showAnalytics && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAnalytics(false);
+          }}
+        >
+          <div className="bg-white rounded-xl w-full max-w-4xl overflow-hidden shadow-xl animate-modal-pop max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <div className="font-medium">{inf.username}</div>
-                {inf.platform === "Both" && (
-                  <div className="text-sm text-gray-500">
-                    {inf.tiktokUsername}
-                  </div>
-                )}
+                <h2 className="text-xl font-bold text-gray-900">
+                  Campaign Analytics
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Detailed performance metrics and insights
+                </p>
               </div>
               <button
-                onClick={() => handleEditInfluencer(inf)}
-                className="p-2 text-gray-600 hover:text-blue-600"
+                onClick={() => setShowAnalytics(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <svg
-                  className="w-5 h-5"
+                  className="w-5 h-5 text-gray-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -714,51 +799,63 @@ export default function InfluencerTracker() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
               </button>
             </div>
-
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="bg-gray-50 p-2 rounded">
-                <div className="text-gray-500">Views Median</div>
-                <div className="font-medium">
-                  {inf.viewsMedian.toLocaleString()}
-                </div>
-              </div>
-              <div className="bg-gray-50 p-2 rounded">
-                <div className="text-gray-500">Current Views</div>
-                <div className="font-medium">
-                  {inf.viewsNow.toLocaleString()}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex -space-x-1">
-                {inf.videos.map((video, idx) => (
-                  <div
-                    key={idx}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 border-white ${getStatusColor(
-                      video.status
-                    )}`}
-                    title={`Video #${idx + 1}: ${video.status}`}
-                  >
-                    {idx + 1}
+            <div className="p-6 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Platform Distribution */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Platform Distribution
+                  </h3>
+                  <div className="h-64 flex items-center justify-center">
+                    {/* Add your chart component here */}
+                    <div className="text-gray-500">
+                      Platform distribution chart
+                    </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Views Over Time */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Views Over Time
+                  </h3>
+                  <div className="h-64 flex items-center justify-center">
+                    {/* Add your chart component here */}
+                    <div className="text-gray-500">Views trend chart</div>
+                  </div>
+                </div>
+
+                {/* Status Distribution */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4">Content Status</h3>
+                  <div className="h-64 flex items-center justify-center">
+                    {/* Add your chart component here */}
+                    <div className="text-gray-500">
+                      Status distribution chart
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Performing Content */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Top Performing Content
+                  </h3>
+                  <div className="h-64 flex items-center justify-center">
+                    {/* Add your chart component here */}
+                    <div className="text-gray-500">Performance chart</div>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={() => setSelectedInfluencer(inf)}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-              >
-                View Details
-              </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* Add Influencer Modal */}
       {showForm && (
